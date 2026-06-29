@@ -1,19 +1,35 @@
-<div class="mod_securepdf_pages">{{#str}}page, mod_securepdf{{/str}} {{pagelabel}} / {{total}}</div>
+<div class="mod_securepdf_topbar">
+    <span class="mod_securepdf_pages">{{#str}}page, mod_securepdf{{/str}} {{pagelabel}} / {{total}}</span>
+    {{#multichunk}}
+    <form class="form-inline mod_securepdf_jump" method="get" action="{{jumpaction}}">
+        <input type="hidden" name="id" value="{{id}}">
+        <label class="sr-only" for="mod_securepdf_jumpinput">{{#str}}jumptopage, mod_securepdf{{/str}}</label>
+        <input type="number" id="mod_securepdf_jumpinput" name="jump" min="1" max="{{total}}"
+               class="form-control form-control-sm mod_securepdf_jumpinput"
+               placeholder="{{#str}}jumptopage, mod_securepdf{{/str}}">
+        <button type="submit" class="btn btn-sm btn-outline-secondary">{{#str}}go, mod_securepdf{{/str}}</button>
+    </form>
+    {{/multichunk}}
+    {{#candownload}}
+    <a class="btn btn-primary btn-sm mod_securepdf_downloadbtn" href="{{downloadurl}}" target="_blank">
+        <i class="fa fa-file-pdf-o" aria-hidden="true"></i> {{#str}}downloadpdf, mod_securepdf{{/str}}
+    </a>
+    {{/candownload}}
+</div>
 {{#images}}
 <img class="mod_securepdf_slide" src="data:image/png;base64, {{base64}}" alt="Page {{page}}" galleryimg="no" onContextMenu="return false;">
 {{/images}}
+{{#multichunk}}
 <div class="mod_securepdf_pageslinks">
-
 {{#hasprevious}}
-    <a class="mod_securepdf_pagebtn mod_securepdf_navbtn" href="{{previousurl}}">&laquo;</a>
+    <a class="btn btn-sm btn-outline-secondary mod_securepdf_pagebtn" href="{{previousurl}}" aria-label="{{#str}}previous, core{{/str}}">&laquo;</a>
 {{/hasprevious}}
-
 {{#pages}}
-   <a class="mod_securepdf_pagebtn{{#active}} active{{/active}}" href="{{url}}">{{page}}</a>
+    {{#ellipsis}}<span class="mod_securepdf_ellipsis">&hellip;</span>{{/ellipsis}}
+    {{^ellipsis}}<a class="btn btn-sm mod_securepdf_pagebtn {{#active}}btn-primary active{{/active}}{{^active}}btn-outline-secondary{{/active}}" href="{{url}}">{{page}}</a>{{/ellipsis}}
 {{/pages}}
-
 {{#hasnext}}
-    <a class="mod_securepdf_pagebtn mod_securepdf_navbtn" href="{{nexturl}}">&raquo;</a>
+    <a class="btn btn-sm btn-outline-secondary mod_securepdf_pagebtn" href="{{nexturl}}" aria-label="{{#str}}next, core{{/str}}">&raquo;</a>
 {{/hasnext}}
-
 </div>
+{{/multichunk}}

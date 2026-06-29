@@ -1,7 +1,20 @@
+.mod_securepdf_topbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
 .mod_securepdf_pages {
     font-size: 1.1rem;
     font-weight: 600;
-    margin-bottom: 8px;
+    margin: 0;
+}
+
+.mod_securepdf_downloadbtn {
+    white-space: nowrap;
 }
 
 .mod_securepdf_pageslinks {
@@ -9,53 +22,69 @@
     flex-wrap: wrap;
     gap: 6px;
     align-items: center;
+    justify-content: center;
     margin-top: 12px;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    background: #f8f9fa;
 }
 
+.mod_securepdf_jump {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+.mod_securepdf_jumpinput {
+    flex: 1 1 9rem;
+    width: auto;
+    min-width: 8.5rem;
+    max-width: 14rem;
+}
+
+.mod_securepdf_ellipsis {
+    padding: 0 4px;
+    align-self: center;
+}
+
+/* Colours come from the active theme's Bootstrap button classes.
+   Only enforce a consistent minimum width for the numbered buttons. */
 .mod_securepdf_pagebtn {
-    display: inline-block;
-    min-width: 38px;
-    padding: 6px 12px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    background: #fff;
-    color: #0f6cbf;
+    min-width: 40px;
     text-align: center;
-    text-decoration: none;
-    line-height: 1.2;
-    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-}
-
-.mod_securepdf_pagebtn:hover,
-.mod_securepdf_pagebtn:focus {
-    background: #e9ecef;
-    border-color: #0f6cbf;
-    color: #0a4a82;
-    text-decoration: none;
 }
 
 .mod_securepdf_pagebtn.active {
-    background: #0f6cbf;
-    border-color: #0f6cbf;
-    color: #fff;
     font-weight: 700;
     pointer-events: none;
 }
 
-.mod_securepdf_navbtn {
-    font-weight: 700;
-}
-
 .mod_securepdf_slide {
     max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
 }
 
 .mod_securepdf_single {
+    max-width: 100%;
+    box-sizing: border-box;
     border: 1px solid #ccc; /* Light gray border */
     padding: 10px;         /* Add some padding inside the border */
     border-radius: 5px;    /* Optional: Rounded corners */
+}
+
+/* Stack the top bar on small screens so nothing is cramped or clipped. */
+@media (max-width: 576px) {
+    .mod_securepdf_topbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .mod_securepdf_pages,
+    .mod_securepdf_downloadbtn {
+        text-align: center;
+    }
+
+    .mod_securepdf_jump {
+        justify-content: center;
+    }
 }

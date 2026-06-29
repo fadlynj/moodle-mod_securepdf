@@ -28,6 +28,12 @@ require_once(dirname(__FILE__) . '/locallib.php');
 $id = required_param('id', PARAM_INT);
 $page = optional_param('page', 0, PARAM_INT);
 
+// Allow jumping directly to a 1-based page number (used by the "go to page" box).
+$jump = optional_param('jump', 0, PARAM_INT);
+if ($jump > 0) {
+    $page = $jump - 1;
+}
+
 // Counter for reload.
 // This is used for the one page view when cache is not yet created.
 $counter = optional_param('counter', 0, PARAM_INT);
@@ -63,10 +69,10 @@ if ($onepageview) {
     // check if we have to provide a download link of pdf
     if ($securepdfdata->allowdownload) {
         $downloadurl = $CFG->wwwroot . '/mod/securepdf/download.php?id=' . $id;
-        // Create PDF icon using FontAwesome.
-        $icon = '<i class="fa fa-file-pdf-o" aria-hidden="true" style="font-size: 36px;"></i>';
-        // Show PDF icon and link to download the PDF
-        echo html_writer::link($downloadurl, $icon . ' ' . get_string('downloadpdf', 'mod_securepdf'), ['target' => '_blank']);
+        // Show a styled button to download the PDF.
+        $icon = '<i class="fa fa-file-pdf-o" aria-hidden="true"></i> ';
+        echo html_writer::link($downloadurl, $icon . get_string('downloadpdf', 'mod_securepdf'),
+            ['target' => '_blank', 'class' => 'btn btn-primary btn-sm mod_securepdf_downloadbtn']);
     }
 
     $cached = \mod_securepdf\view::checkcache($cm, 0);
@@ -83,8 +89,7 @@ if ($onepageview) {
     } else {
         for ($i = 0; $i < $numpages; $i++) {
             $page = $i;
-            $cached = \mod_securepdf\view::checkcache($cm, $page);
-            $data = $cached['data'];
+            $data = \mod_securepdf\view::getpagedata($cm, $page);
             if (!$data) { // If there is not yet cache for this page.
                 echo '<br><br>' . get_string('nocacheyet', 'mod_securepdf');
                 // Refresh every minutes.
@@ -172,20 +177,10 @@ if ($onepageview) {
 
     echo $OUTPUT->header();
 
-    // check if we have to provide a download link of pdf
-    if ($securepdfdata->allowdownload) {
-        $downloadurl = $CFG->wwwroot . '/mod/securepdf/download.php?id=' . $id;
-        // Create PDF icon using FontAwesome.
-        $icon = '<i class="fa fa-file-pdf-o" aria-hidden="true" style="font-size: 36px;"></i>';
-        // Show PDF icon and link to download the PDF
-        echo html_writer::link($downloadurl, $icon . ' ' . get_string('downloadpdf', 'mod_securepdf'), ['target' => '_blank']);
-    }
-
     // Collect the images for every page in this chunk.
     $images = [];
     for ($p = $page; $p <= $lastpage; $p++) {
-        $cachedpage = \mod_securepdf\view::checkcache($cm, $p);
-        $imgdata = $cachedpage['data'];
+        $imgdata = \mod_securepdf\view::getpagedata($cm, $p);
         if (!$imgdata) { // No cache for this page - parse it now (also writes the cache).
             $numpagesdata = \mod_securepdf\view::getnumpages($context, $settings->resolution, $cm, $p);
             $imgdata = $numpagesdata['data'];
@@ -196,16 +191,40 @@ if ($onepageview) {
         }
     }
 
-    // Build the chunk-based navigation links.
+    // Build a compact, windowed list of chunk links (first ... around current ... last)
+    // so a very large PDF does not render thousands of buttons.
+    $totalchunks = (int)ceil($numpages / $perpage);
+    $currentchunk = (int)floor($page / $perpage);
+    $window = 2; // Chunks to show on each side of the current one.
+
+    $show = [];
+    $show[0] = true;
+    $show[$totalchunks - 1] = true;
+    for ($c = $currentchunk - $window; $c <= $currentchunk + $window; $c++) {
+        if ($c >= 0 && $c < $totalchunks) {
+            $show[$c] = true;
+        }
+    }
+    $chunkindices = array_keys($show);
+    sort($chunkindices, SORT_NUMERIC);
+
     $pages = [];
-    for ($start = 0; $start < $numpages; $start += $perpage) {
+    $previndex = null;
+    foreach ($chunkindices as $c) {
+        // Insert an ellipsis marker when there is a gap between shown chunks.
+        if ($previndex !== null && $c > $previndex + 1) {
+            $pages[] = ['ellipsis' => true];
+        }
+        $start = $c * $perpage;
         $end = min($start + $perpage, $numpages) - 1;
         $label = ($perpage > 1) ? (($start + 1) . '-' . ($end + 1)) : (string)($start + 1);
         $pages[] = [
-            'url'    => $CFG->wwwroot . '/mod/securepdf/view.php?id=' . $id . '&page=' . $start,
-            'page'   => $label,
-            'active' => ($start == $page),
+            'ellipsis' => false,
+            'url'      => $CFG->wwwroot . '/mod/securepdf/view.php?id=' . $id . '&page=' . $start,
+            'page'     => $label,
+            'active'   => ($start == $page),
         ];
+        $previndex = $c;
     }
 
     // Previous / next chunk.
@@ -232,6 +251,11 @@ if ($onepageview) {
             'hasprevious' => $hasprevious,
             'nexturl'     => $CFG->wwwroot . '/mod/securepdf/view.php?id=' . $id . '&page=' . $nextstart,
             'previousurl' => $CFG->wwwroot . '/mod/securepdf/view.php?id=' . $id . '&page=' . $previousstart,
+            'candownload' => !empty($securepdfdata->allowdownload),
+            'downloadurl' => $CFG->wwwroot . '/mod/securepdf/download.php?id=' . $id,
+            'multichunk'  => ($totalchunks > 1),
+            'id'          => $id,
+            'jumpaction'  => $CFG->wwwroot . '/mod/securepdf/view.php',
             ]);
 }
 
