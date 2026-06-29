@@ -1,17 +1,19 @@
-<div class=mod_securepdf_pages>{{#str}}page, mod_securepdf{{/str}} {{page}} / {{total}}</div>
-<div class=mod_securepdf_pageslinks>
+<div class="mod_securepdf_pages">{{#str}}page, mod_securepdf{{/str}} {{pagelabel}} / {{total}}</div>
+{{#images}}
+<img class="mod_securepdf_slide" src="data:image/png;base64, {{base64}}" alt="Page {{page}}" galleryimg="no" onContextMenu="return false;">
+{{/images}}
+<div class="mod_securepdf_pageslinks">
 
-{{#previous}}
-    <a href="{{previousurl}}"> << </a>
-{{/previous}}
+{{#hasprevious}}
+    <a class="mod_securepdf_pagebtn mod_securepdf_navbtn" href="{{previousurl}}">&laquo;</a>
+{{/hasprevious}}
 
 {{#pages}}
-   <a href="{{url}}">  {{page}}  </a>
+   <a class="mod_securepdf_pagebtn{{#active}} active{{/active}}" href="{{url}}">{{page}}</a>
 {{/pages}}
 
-{{#next}}
-    <a href="{{nexturl}}"> >> </a>
-{{/next}}
+{{#hasnext}}
+    <a class="mod_securepdf_pagebtn mod_securepdf_navbtn" href="{{nexturl}}">&raquo;</a>
+{{/hasnext}}
 
 </div>
-<img class="mod_securepdf_slide" src="data:image/png;base64, {{base64}}" alt="Page {{page}}" galleryimg="no" onContextMenu="return false;">

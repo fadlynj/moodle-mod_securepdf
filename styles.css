@@ -1,9 +1,53 @@
-.mod_securepdf_pageslinks {
-    font-size: 1.5rem;
+.mod_securepdf_pages {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 8px;
 }
 
-.mod_securepdf_pageslinks a {
-    margin-left: 3px;
+.mod_securepdf_pageslinks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    margin-top: 12px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background: #f8f9fa;
+}
+
+.mod_securepdf_pagebtn {
+    display: inline-block;
+    min-width: 38px;
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: #fff;
+    color: #0f6cbf;
+    text-align: center;
+    text-decoration: none;
+    line-height: 1.2;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.mod_securepdf_pagebtn:hover,
+.mod_securepdf_pagebtn:focus {
+    background: #e9ecef;
+    border-color: #0f6cbf;
+    color: #0a4a82;
+    text-decoration: none;
+}
+
+.mod_securepdf_pagebtn.active {
+    background: #0f6cbf;
+    border-color: #0f6cbf;
+    color: #fff;
+    font-weight: 700;
+    pointer-events: none;
+}
+
+.mod_securepdf_navbtn {
+    font-weight: 700;
 }
 
 .mod_securepdf_slide {

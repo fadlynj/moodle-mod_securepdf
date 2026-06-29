@@ -109,54 +109,56 @@ if ($onepageview) {
         }
     }
 } else {
-    // Each slide is shown in a separate page.
+    // Paged view - one or more pages are shown per screen.
 
-    // Update page views in table - in order to be able to set completion.
-    $pageview = ['module' => $cm->id,
-                'userid' => $USER->id,
-                'page' => $page
-                ];
-    $exist = $DB->get_record('securepdf_pageviews', $pageview);
-    if ($exist) {
-        $pageview['timemodified'] = time();
-        $pageview['id'] = $exist->id;
-        $DB->update_record('securepdf_pageviews', $pageview);
-    } else {
-        $pageview['timemodified'] = time();
-        $pageview['timecreated'] = time();
-        $DB->insert_record('securepdf_pageviews', $pageview);
-    }
+    // How many pages to show on a single screen.
+    $perpage = isset($securepdfdata->pagesperview) ? max(1, (int)$securepdfdata->pagesperview) : 1;
 
-    $event = \mod_securepdf\event\page_view::create(array(
-        'objectid' => $securepdf->get_instance()->id,
-        'context' => context_module::instance($cm->id),
-        'other' => $page + 1
-    ));
-    $event->trigger();
-
+    // Find out the total number of pages (from cache, fall back to parsing the PDF).
     $cached = \mod_securepdf\view::checkcache($cm, $page);
-    $data = $cached['data'];
     $numpages = $cached['numpages'];
-
-    // If there is no cache - we should parse the PDF and write cache.
-    if (!$data || !$numpages) {
-        // First call the adhoc task for generating the cache of all pages
-        // This situation happen while cache was purged
-        // otherwise the cache is created on create/update resource.
+    if (!$numpages) {
+        // No cache yet - queue the adhoc task and parse on the fly so the page still renders.
         $adhoccache = new \mod_securepdf\task\create_cache();
         $adhoccache->set_custom_data(['moduleid' => $cm->id]);
         \core\task\manager::queue_adhoc_task($adhoccache);
 
         $numpagesdata = \mod_securepdf\view::getnumpages($context, $settings->resolution, $cm, $page);
         $numpages = $numpagesdata['numpages'];
-        $bas64 = $numpagesdata['data'];
+    }
 
-        if ($page > $numpages) {
-            $error = get_string('nosuchpage', 'mod_securepdf');
+    // Align the requested page to the start of its chunk and keep it in range.
+    if ($page < 0 || $page >= $numpages) {
+        $page = 0;
+    }
+    if ($perpage > 1) {
+        $page = $page - ($page % $perpage);
+    }
+    $lastpage = min($page + $perpage, $numpages) - 1; // Inclusive index of the last page in this chunk.
+
+    // Update page views in table (one row per page) - in order to be able to set completion.
+    for ($p = $page; $p <= $lastpage; $p++) {
+        $pageview = ['module' => $cm->id,
+                    'userid' => $USER->id,
+                    'page' => $p
+                    ];
+        $exist = $DB->get_record('securepdf_pageviews', $pageview);
+        if ($exist) {
+            $pageview['timemodified'] = time();
+            $pageview['id'] = $exist->id;
+            $DB->update_record('securepdf_pageviews', $pageview);
+        } else {
+            $pageview['timemodified'] = time();
+            $pageview['timecreated'] = time();
+            $DB->insert_record('securepdf_pageviews', $pageview);
         }
-    } else {
-        // Get image from cache.
-        $base64 = $data;
+
+        $event = \mod_securepdf\event\page_view::create(array(
+            'objectid' => $securepdf->get_instance()->id,
+            'context' => context_module::instance($cm->id),
+            'other' => $p + 1
+        ));
+        $event->trigger();
     }
 
     // Update 'viewed' state if required by completion system.
@@ -179,32 +181,57 @@ if ($onepageview) {
         echo html_writer::link($downloadurl, $icon . ' ' . get_string('downloadpdf', 'mod_securepdf'), ['target' => '_blank']);
     }
 
+    // Collect the images for every page in this chunk.
+    $images = [];
+    for ($p = $page; $p <= $lastpage; $p++) {
+        $cachedpage = \mod_securepdf\view::checkcache($cm, $p);
+        $imgdata = $cachedpage['data'];
+        if (!$imgdata) { // No cache for this page - parse it now (also writes the cache).
+            $numpagesdata = \mod_securepdf\view::getnumpages($context, $settings->resolution, $cm, $p);
+            $imgdata = $numpagesdata['data'];
+        }
+        if ($imgdata) {
+            $imgdata = \mod_securepdf\view::addwatermark($imgdata, $settings);
+            $images[] = ['base64' => $imgdata, 'page' => $p + 1];
+        }
+    }
+
+    // Build the chunk-based navigation links.
     $pages = [];
-    for ($i = 0; $i < $numpages; $i++) {
-        $pages[$i]['url'] = $CFG->wwwroot . '/mod/securepdf/view.php?id=' . $id . '&page=' . $i;
-        $pages[$i]['page'] = $i + 1;
+    for ($start = 0; $start < $numpages; $start += $perpage) {
+        $end = min($start + $perpage, $numpages) - 1;
+        $label = ($perpage > 1) ? (($start + 1) . '-' . ($end + 1)) : (string)($start + 1);
+        $pages[] = [
+            'url'    => $CFG->wwwroot . '/mod/securepdf/view.php?id=' . $id . '&page=' . $start,
+            'page'   => $label,
+            'active' => ($start == $page),
+        ];
     }
 
-    $next = 0;
-    if (($page + 1) < $numpages) {
-        $next = $page + 1;
+    // Previous / next chunk.
+    $previousstart = $page - $perpage;
+    $hasprevious = ($previousstart >= 0);
+    if (!$hasprevious) {
+        $previousstart = 0;
+    }
+    $nextstart = $page + $perpage;
+    $hasnext = ($nextstart < $numpages);
+    if (!$hasnext) {
+        $nextstart = $page;
     }
 
-    $nexturl = $CFG->wwwroot . '/mod/securepdf/view.php?id=' . $id . '&page=' . $next;
-    $previousurl = $CFG->wwwroot . '/mod/securepdf/view.php?id=' . $id . '&page=' . ($page - 1);
-
-    // Add watermark to image.
-    $base64 = \mod_securepdf\view::addwatermark($base64, $settings);
+    // Header label, e.g. "1" for a single page or "1-5" for a chunk.
+    $pagelabel = ($perpage > 1) ? (($page + 1) . '-' . ($lastpage + 1)) : ($page + 1);
 
     echo $OUTPUT->render_from_template('mod_securepdf/imageview',
-        [   'base64' => $base64,
-            'page' => $page + 1,
-            'total' => $numpages,
-            'pages' => $pages,
-            'next' => $next,
-            'previous' => $page,
-            'nexturl' => $nexturl,
-            'previousurl' => $previousurl
+        [   'images'      => $images,
+            'pagelabel'   => $pagelabel,
+            'total'       => $numpages,
+            'pages'       => $pages,
+            'hasnext'     => $hasnext,
+            'hasprevious' => $hasprevious,
+            'nexturl'     => $CFG->wwwroot . '/mod/securepdf/view.php?id=' . $id . '&page=' . $nextstart,
+            'previousurl' => $CFG->wwwroot . '/mod/securepdf/view.php?id=' . $id . '&page=' . $previousstart,
             ]);
 }
 
