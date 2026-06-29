@@ -84,6 +84,51 @@ class securepdf {
     }
 
     /**
+     * Sanitise a hex colour (#RRGGBB), falling back to a default.
+     *
+     * @param string $value submitted colour
+     * @param string $default colour to use when the value is invalid
+     * @return string a valid lowercase #RRGGBB colour
+     */
+    public static function sanitize_hexcolor($value, $default) {
+        $value = trim((string)$value);
+        if (preg_match('/^#[0-9a-fA-F]{6}$/', $value)) {
+            return strtolower($value);
+        }
+        if (preg_match('/^#[0-9a-fA-F]{3}$/', $value)) {
+            // Expand shorthand #abc to #aabbcc.
+            return strtolower('#' . $value[1] . $value[1] . $value[2] . $value[2] . $value[3] . $value[3]);
+        }
+        return $default;
+    }
+
+    /**
+     * Whitelist the PDF font family used for the download info box.
+     *
+     * @param string $value submitted font name
+     * @return string a supported TCPDF core font
+     */
+    public static function sanitize_pdffont($value) {
+        $allowed = ['helvetica', 'times', 'courier'];
+        $value = strtolower(trim((string)$value));
+        return in_array($value, $allowed, true) ? $value : 'helvetica';
+    }
+
+    /**
+     * Whitelist the download info box position.
+     *
+     * @param string $value submitted position
+     * @return string a supported position keyword
+     */
+    public static function sanitize_position($value) {
+        $allowed = ['topleft', 'topcenter', 'topright',
+                    'middleleft', 'middlecenter', 'middleright',
+                    'bottomleft', 'bottomcenter', 'bottomright'];
+        $value = strtolower(trim((string)$value));
+        return in_array($value, $allowed, true) ? $value : 'bottomleft';
+    }
+
+    /**
      * Add this instance to the database.
      *
      * @param stdClass $formdata The data submitted from the form
@@ -123,6 +168,19 @@ class securepdf {
         } else {
             $add->allowdownload = 0;
         }
+        $add->pagesperview = isset($formdata->pagesperview) ? max(1, (int)$formdata->pagesperview) : 1;
+        $add->dlwmconfidential = isset($formdata->dlwmconfidential) ? 1 : 0;
+        $add->dlwmtext = isset($formdata->dlwmtext) ? trim($formdata->dlwmtext) : '';
+        $add->dlwmuser = isset($formdata->dlwmuser) ? 1 : 0;
+        $add->dlwmip = isset($formdata->dlwmip) ? 1 : 0;
+        $add->dlwmtime = isset($formdata->dlwmtime) ? 1 : 0;
+        $add->dlwmtextcolor = self::sanitize_hexcolor($formdata->dlwmtextcolor ?? '', '#c80000');
+        $add->dlwmbgcolor = self::sanitize_hexcolor($formdata->dlwmbgcolor ?? '', '#ffffff');
+        $add->dlwmbordercolor = self::sanitize_hexcolor($formdata->dlwmbordercolor ?? '', '#c80000');
+        $add->dlwmbgopacity = isset($formdata->dlwmbgopacity) ? min(100, max(0, (int)$formdata->dlwmbgopacity)) : 80;
+        $add->dlwmfont = self::sanitize_pdffont($formdata->dlwmfont ?? '');
+        $add->dlwmfontsize = isset($formdata->dlwmfontsize) ? max(0, (int)$formdata->dlwmfontsize) : 0;
+        $add->dlwmposition = self::sanitize_position($formdata->dlwmposition ?? '');
 
         $returnid = $DB->insert_record('securepdf', $add);
         $this->instance = $DB->get_record('securepdf',
@@ -209,7 +267,19 @@ class securepdf {
         } else {
             $update->allowdownload = 0;
         }
-        
+        $update->pagesperview = isset($formdata->pagesperview) ? max(1, (int)$formdata->pagesperview) : 1;
+        $update->dlwmconfidential = isset($formdata->dlwmconfidential) ? 1 : 0;
+        $update->dlwmtext = isset($formdata->dlwmtext) ? trim($formdata->dlwmtext) : '';
+        $update->dlwmuser = isset($formdata->dlwmuser) ? 1 : 0;
+        $update->dlwmip = isset($formdata->dlwmip) ? 1 : 0;
+        $update->dlwmtime = isset($formdata->dlwmtime) ? 1 : 0;
+        $update->dlwmtextcolor = self::sanitize_hexcolor($formdata->dlwmtextcolor ?? '', '#c80000');
+        $update->dlwmbgcolor = self::sanitize_hexcolor($formdata->dlwmbgcolor ?? '', '#ffffff');
+        $update->dlwmbordercolor = self::sanitize_hexcolor($formdata->dlwmbordercolor ?? '', '#c80000');
+        $update->dlwmbgopacity = isset($formdata->dlwmbgopacity) ? min(100, max(0, (int)$formdata->dlwmbgopacity)) : 80;
+        $update->dlwmfont = self::sanitize_pdffont($formdata->dlwmfont ?? '');
+        $update->dlwmfontsize = isset($formdata->dlwmfontsize) ? max(0, (int)$formdata->dlwmfontsize) : 0;
+        $update->dlwmposition = self::sanitize_position($formdata->dlwmposition ?? '');
 
         $result = $DB->update_record('securepdf', $update);
         $this->instance = $DB->get_record('securepdf',

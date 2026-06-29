@@ -39,6 +39,14 @@ if ($ADMIN->fulltree) {
                                      "150",
                                      PARAM_INT
                                      ));
+    // Download resolution (used when building watermarked downloads; lower = faster).
+    $settings->add(
+        new admin_setting_configtext('securepdf/downloadresolution',
+                                     get_string('downloadresolution', 'securepdf'),
+                                     get_string('downloadresolution_explain', 'securepdf'),
+                                     "120",
+                                     PARAM_INT
+                                     ));
     // Add username to image.
     $settings->add(
         new admin_setting_configcheckbox('securepdf/addusername',

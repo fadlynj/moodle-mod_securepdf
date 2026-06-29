@@ -74,6 +74,79 @@ function xmldb_securepdf_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2025070500, 'securepdf');
     }
 
+    // Add pagesperview field to securepdf table.
+    if ($oldversion < 2026062900) {
+
+        // Define field pagesperview to be added to securepdf.
+        $table = new xmldb_table('securepdf');
+        $field = new xmldb_field('pagesperview', XMLDB_TYPE_INTEGER, '4', null, XMLDB_NOTNULL, null, '1', 'allowdownload');
+
+        // Conditionally launch add field pagesperview.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Securepdf savepoint reached.
+        upgrade_mod_savepoint(true, 2026062900, 'securepdf');
+    }
+
+    // Add download watermark fields to securepdf table.
+    if ($oldversion < 2026062901) {
+
+        $table = new xmldb_table('securepdf');
+        $fields = [
+            new xmldb_field('dlwmconfidential', XMLDB_TYPE_INTEGER, '4', null, XMLDB_NOTNULL, null, '0', 'pagesperview'),
+            new xmldb_field('dlwmtext', XMLDB_TYPE_CHAR, '255', null, null, null, null, 'dlwmconfidential'),
+            new xmldb_field('dlwmuser', XMLDB_TYPE_INTEGER, '4', null, XMLDB_NOTNULL, null, '0', 'dlwmtext'),
+            new xmldb_field('dlwmip', XMLDB_TYPE_INTEGER, '4', null, XMLDB_NOTNULL, null, '0', 'dlwmuser'),
+            new xmldb_field('dlwmtime', XMLDB_TYPE_INTEGER, '4', null, XMLDB_NOTNULL, null, '0', 'dlwmip'),
+        ];
+        foreach ($fields as $field) {
+            if (!$dbman->field_exists($table, $field)) {
+                $dbman->add_field($table, $field);
+            }
+        }
+
+        // Securepdf savepoint reached.
+        upgrade_mod_savepoint(true, 2026062901, 'securepdf');
+    }
+
+    // Add download watermark styling fields to securepdf table.
+    if ($oldversion < 2026062902) {
+
+        $table = new xmldb_table('securepdf');
+        $fields = [
+            new xmldb_field('dlwmtextcolor', XMLDB_TYPE_CHAR, '7', null, null, null, '#c80000', 'dlwmtime'),
+            new xmldb_field('dlwmbgcolor', XMLDB_TYPE_CHAR, '7', null, null, null, '#ffffff', 'dlwmtextcolor'),
+            new xmldb_field('dlwmbordercolor', XMLDB_TYPE_CHAR, '7', null, null, null, '#c80000', 'dlwmbgcolor'),
+            new xmldb_field('dlwmbgopacity', XMLDB_TYPE_INTEGER, '4', null, XMLDB_NOTNULL, null, '80', 'dlwmbordercolor'),
+            new xmldb_field('dlwmfont', XMLDB_TYPE_CHAR, '32', null, XMLDB_NOTNULL, null, 'helvetica', 'dlwmbgopacity'),
+            new xmldb_field('dlwmfontsize', XMLDB_TYPE_INTEGER, '4', null, XMLDB_NOTNULL, null, '0', 'dlwmfont'),
+        ];
+        foreach ($fields as $field) {
+            if (!$dbman->field_exists($table, $field)) {
+                $dbman->add_field($table, $field);
+            }
+        }
+
+        // Securepdf savepoint reached.
+        upgrade_mod_savepoint(true, 2026062902, 'securepdf');
+    }
+
+    // Add download watermark info position field to securepdf table.
+    if ($oldversion < 2026062903) {
+
+        $table = new xmldb_table('securepdf');
+        $field = new xmldb_field('dlwmposition', XMLDB_TYPE_CHAR, '16', null, XMLDB_NOTNULL, null, 'bottomleft', 'dlwmfontsize');
+
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Securepdf savepoint reached.
+        upgrade_mod_savepoint(true, 2026062903, 'securepdf');
+    }
+
     // Final return of upgrade result (true, all went good) to Moodle.
     return true;
 }

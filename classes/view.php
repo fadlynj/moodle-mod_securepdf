@@ -44,6 +44,20 @@ class view {
         $numpages = $cache->get($cm->id);
         return ['data' => $data, 'numpages' => $numpages];
     }
+
+    /**
+     * Fetch a single cached page image without also re-reading the page count.
+     *
+     * Cheaper than checkcache() inside per-page loops (one cache get instead of two).
+     *
+     * @param \cm_info $cm
+     * @param int $page
+     * @return string|false base64 image data, or false when not cached
+     */
+    public static function getpagedata($cm, $page) {
+        $cache = \cache::make('mod_securepdf', 'pages');
+        return $cache->get($cm->id . '_' . $page);
+    }
     /**
      * Get the number of pages in the PDF and return the image data.
      * in case that there is no cache.
@@ -55,17 +69,24 @@ class view {
      * @return array
      */
     public static function getnumpages($context, $resolution, $cm, $page = 0) {
+        global $OUTPUT;
+
         $fs = get_file_storage();
         $files = $fs->get_area_files($context->id, 'mod_securepdf', 'content', 0, 'sortorder', false);
+        $content = '';
         foreach ($files as $file) {
+            if ($file->is_directory()) {
+                continue;
+            }
             $content = $file->get_content();
+            break;
         }
 
         $im = new \imagick();
         $im->setResolution($resolution, $resolution);
         try {
             $im->readImageBlob($content);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             echo $OUTPUT->header();
             \core\notification::error(get_string('imagick_pdf_policy', 'mod_securepdf'));
             echo $e;
@@ -81,13 +102,20 @@ class view {
 
         if ($page > 0) {
             $im->setIteratorIndex($page);
+            // Flatten transparency onto white, strip metadata, compress: smaller
+            // cached image = less HTML and faster page load.
+            $im->setImageBackgroundColor('white');
+            if (defined('\Imagick::ALPHACHANNEL_REMOVE')) {
+                $im->setImageAlphaChannel(\Imagick::ALPHACHANNEL_REMOVE);
+            }
             $im->setImageFormat('jpeg');
-            $im->setImageAlphaChannel(\Imagick::VIRTUALPIXELMETHOD_WHITE);
+            $im->setImageCompressionQuality(85);
+            $im->stripImage();
             $img = $im->getImageBlob();
             $base64 = base64_encode($img);
             // Cache the image.
             $result = $cache->set($cm->id . '_' . $page, $base64);
-        } 
+        }
         $im->destroy();
         return ['numpages' => $numpages, 'data' => $base64];
     }
