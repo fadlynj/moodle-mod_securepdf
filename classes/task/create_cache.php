@@ -37,8 +37,13 @@ class create_cache extends \core\task\adhoc_task
         $context = \context_module::instance($moduleid);
         $fs = get_file_storage();
         $files = $fs->get_area_files($context->id, 'mod_securepdf', 'content', 0, 'sortorder', false);
+        $content = '';
         foreach ($files as $file) {
+            if ($file->is_directory()) {
+                continue;
+            }
             $content = $file->get_content();
+            break;
         }
 
         // Init imagick object.
@@ -57,8 +62,15 @@ class create_cache extends \core\task\adhoc_task
         for ($page = 0; $page < $numpages; $page++) {
             echo '[mod_securepdf] Caching page ' . $page . ' of module ' . $moduleid . "\n";
             $im->setIteratorIndex($page);
+            // Flatten transparency onto white, strip metadata, compress: smaller
+            // cached image = less HTML and faster page load on every view.
+            $im->setImageBackgroundColor('white');
+            if (defined('\Imagick::ALPHACHANNEL_REMOVE')) {
+                $im->setImageAlphaChannel(\Imagick::ALPHACHANNEL_REMOVE);
+            }
             $im->setImageFormat('jpeg');
-            $im->setImageAlphaChannel(\Imagick::VIRTUALPIXELMETHOD_WHITE);
+            $im->setImageCompressionQuality(85);
+            $im->stripImage();
             $img = $im->getImageBlob();
             $base64 = base64_encode($img);
             $result = $cache->set($moduleid . '_' . $page, $base64);
