@@ -113,6 +113,61 @@ class mod_securepdf_mod_form extends moodleform_mod {
         $mform->setDefault('dlwmtime', 0);
         $mform->disabledIf('dlwmtime', 'allowdownload', 'notchecked');
 
+        // Appearance of the download info box (text / IP / time).
+        $mform->addElement('text', 'dlwmtextcolor', get_string('dlwmtextcolor', 'securepdf'),
+            array('size' => '8', 'placeholder' => '#c80000'));
+        $mform->setType('dlwmtextcolor', PARAM_TEXT);
+        $mform->setDefault('dlwmtextcolor', '#c80000');
+        $mform->addHelpButton('dlwmtextcolor', 'dlwmcolor', 'securepdf');
+        $mform->disabledIf('dlwmtextcolor', 'allowdownload', 'notchecked');
+
+        $mform->addElement('text', 'dlwmbgcolor', get_string('dlwmbgcolor', 'securepdf'),
+            array('size' => '8', 'placeholder' => '#ffffff'));
+        $mform->setType('dlwmbgcolor', PARAM_TEXT);
+        $mform->setDefault('dlwmbgcolor', '#ffffff');
+        $mform->addHelpButton('dlwmbgcolor', 'dlwmcolor', 'securepdf');
+        $mform->disabledIf('dlwmbgcolor', 'allowdownload', 'notchecked');
+
+        $mform->addElement('text', 'dlwmbordercolor', get_string('dlwmbordercolor', 'securepdf'),
+            array('size' => '8', 'placeholder' => '#c80000'));
+        $mform->setType('dlwmbordercolor', PARAM_TEXT);
+        $mform->setDefault('dlwmbordercolor', '#c80000');
+        $mform->addHelpButton('dlwmbordercolor', 'dlwmcolor', 'securepdf');
+        $mform->disabledIf('dlwmbordercolor', 'allowdownload', 'notchecked');
+
+        $opacityoptions = [];
+        for ($o = 0; $o <= 100; $o += 10) {
+            $opacityoptions[$o] = $o . '%';
+        }
+        $mform->addElement('select', 'dlwmbgopacity', get_string('dlwmbgopacity', 'securepdf'), $opacityoptions);
+        $mform->setDefault('dlwmbgopacity', 80);
+        $mform->disabledIf('dlwmbgopacity', 'allowdownload', 'notchecked');
+
+        $fontoptions = ['helvetica' => 'Helvetica', 'times' => 'Times', 'courier' => 'Courier'];
+        $mform->addElement('select', 'dlwmfont', get_string('dlwmfont', 'securepdf'), $fontoptions);
+        $mform->setDefault('dlwmfont', 'helvetica');
+        $mform->disabledIf('dlwmfont', 'allowdownload', 'notchecked');
+
+        $sizeoptions = [0 => get_string('dlwmfontsizeauto', 'securepdf')];
+        foreach ([6, 7, 8, 9, 10, 11, 12, 14, 16, 18] as $sz) {
+            $sizeoptions[$sz] = $sz . ' pt';
+        }
+        $mform->addElement('select', 'dlwmfontsize', get_string('dlwmfontsize', 'securepdf'), $sizeoptions);
+        $mform->setDefault('dlwmfontsize', 0);
+        $mform->disabledIf('dlwmfontsize', 'allowdownload', 'notchecked');
+
+        // Where on the page the info box is drawn.
+        $positions = ['topleft', 'topcenter', 'topright',
+                      'middleleft', 'middlecenter', 'middleright',
+                      'bottomleft', 'bottomcenter', 'bottomright'];
+        $positionoptions = [];
+        foreach ($positions as $p) {
+            $positionoptions[$p] = get_string('dlwmpos_' . $p, 'securepdf');
+        }
+        $mform->addElement('select', 'dlwmposition', get_string('dlwmposition', 'securepdf'), $positionoptions);
+        $mform->setDefault('dlwmposition', 'bottomleft');
+        $mform->disabledIf('dlwmposition', 'allowdownload', 'notchecked');
+
         // Standard elements, common to all modules.
         $this->standard_coursemodule_elements();
 

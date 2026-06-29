@@ -20,6 +20,13 @@
         <FIELD NAME="dlwmuser" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Download watermark: downloader name (0 = no, 1 = yes)"/>
         <FIELD NAME="dlwmip" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Download watermark: downloader IP (0 = no, 1 = yes)"/>
         <FIELD NAME="dlwmtime" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Download watermark: download time (0 = no, 1 = yes)"/>
+        <FIELD NAME="dlwmtextcolor" TYPE="char" LENGTH="7" NOTNULL="false" DEFAULT="#c80000" SEQUENCE="false" COMMENT="Download watermark info text colour (hex)"/>
+        <FIELD NAME="dlwmbgcolor" TYPE="char" LENGTH="7" NOTNULL="false" DEFAULT="#ffffff" SEQUENCE="false" COMMENT="Download watermark info background colour (hex)"/>
+        <FIELD NAME="dlwmbordercolor" TYPE="char" LENGTH="7" NOTNULL="false" DEFAULT="#c80000" SEQUENCE="false" COMMENT="Download watermark info border colour (hex)"/>
+        <FIELD NAME="dlwmbgopacity" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="80" SEQUENCE="false" COMMENT="Download watermark info background opacity (0-100)"/>
+        <FIELD NAME="dlwmfont" TYPE="char" LENGTH="32" NOTNULL="true" DEFAULT="helvetica" SEQUENCE="false" COMMENT="Download watermark info font family"/>
+        <FIELD NAME="dlwmfontsize" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Download watermark info font size in points (0 = auto)"/>
+        <FIELD NAME="dlwmposition" TYPE="char" LENGTH="16" NOTNULL="true" DEFAULT="bottomleft" SEQUENCE="false" COMMENT="Download watermark info box position"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
       </FIELDS>

@@ -27,5 +27,9 @@ defined('MOODLE_INTERNAL') || die;
 $definitions = [
     'pages' => [
         'mode' => cache_store::MODE_APPLICATION,
-    ]
+    ],
+    // Rasterised per-page JPEGs used to build watermarked downloads.
+    'downloadpages' => [
+        'mode' => cache_store::MODE_APPLICATION,
+    ],
 ];
