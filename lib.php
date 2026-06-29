@@ -54,6 +54,8 @@ function securepdf_supports($feature) {
             return true;
         case FEATURE_MOD_ARCHETYPE:
             return MOD_ARCHETYPE_RESOURCE;
+        case FEATURE_MOD_PURPOSE:
+            return MOD_PURPOSE_CONTENT;
         case FEATURE_MOD_INTRO:
             return true;
         case FEATURE_BACKUP_MOODLE2:
@@ -238,6 +240,27 @@ function securepdf_get_coursemodule_info($coursemodule) {
                                                $securepdf,
                                                $coursemodule->id,
                                                false);
+    }
+
+    // Display the activity like a core File resource: use the PDF's file-type
+    // icon and show the file type and size after the name.
+    require_once($CFG->libdir . '/filelib.php');
+    $context = context_module::instance($coursemodule->id);
+    $fs = get_file_storage();
+    $files = $fs->get_area_files($context->id, 'mod_securepdf', 'content', 0,
+        'sortorder DESC, id ASC', false, 0, 0, 1);
+    if (count($files) >= 1) {
+        $mainfile = reset($files);
+        // File-type icon (e.g. the PDF icon), same as the core File resource.
+        $result->icon = file_file_icon($mainfile);
+        // Show the file extension (e.g. "PDF") in muted text after the name,
+        // like the core File resource title.
+        $ext = strtoupper(pathinfo($mainfile->get_filename(), PATHINFO_EXTENSION));
+        if ($ext !== '') {
+            $result->content = trim($result->content . ' ' .
+                html_writer::tag('span', $ext,
+                    array('class' => 'resourcedetails text-muted')));
+        }
     }
 
     return $result;
