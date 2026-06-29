@@ -21,6 +21,7 @@
  */
 
 require('../../config.php');
+require_once($CFG->libdir . '/pdflib.php');
 
 $id = required_param('id', PARAM_INT); // Module id.
 // get course id from module id.
@@ -40,30 +41,89 @@ $files = $fs->get_area_files($context->id, 'mod_securepdf', 'content', 0, 'sorto
 if (empty($files)) {
     print_error('nofiles', 'securepdf');
 }
+$pdfcontent = '';
+$filename = '';
 foreach ($files as $file) {
     if ($file->is_directory()) {
         continue;
     }
     $pdfcontent = $file->get_content();
     $filename = $file->get_filename();
-    $filesize = $file->get_filesize();    
     break;
 }
 if (empty($pdfcontent)) {
     print_error('nofiles', 'securepdf');
 }
-header('Content-Type: application/pdf');
-header('Content-Disposition: attachment; filename="' . $filename . '"');
-header('Content-Length: ' . $filesize);
-header('Cache-Control: no-store, no-cache, must-revalidate');
-header('Pragma: no-cache');
-header('Expires: 0');
-header('Content-Transfer-Encoding: binary');
-header('Content-Description: File Transfer');
 
-echo $pdfcontent;
-// Close the connection to the database.
-$DB->close();
-// Close the connection to the file storage.
-$fs->close();
+// Build the watermark from the activity configuration.
+// Large diagonal stamp (CONFIDENTIAL or a custom text).
+$stamp = '';
+if (!empty($securepdfdata->dlwmconfidential)) {
+    $custom = isset($securepdfdata->dlwmtext) ? trim($securepdfdata->dlwmtext) : '';
+    $stamp = ($custom !== '') ? $custom : get_string('confidential', 'securepdf');
+}
+// Footer info lines (who / IP / when).
+$footerlines = [];
+if (!empty($securepdfdata->dlwmuser)) {
+    $footerlines[] = get_string('downloadedby', 'securepdf', fullname($USER) . ' (' . $USER->username . ')');
+}
+if (!empty($securepdfdata->dlwmip)) {
+    $footerlines[] = get_string('ipaddress', 'securepdf', getremoteaddr());
+}
+if (!empty($securepdfdata->dlwmtime)) {
+    $footerlines[] = get_string('downloadtime', 'securepdf', userdate(time()));
+}
+
+$haswatermark = ($stamp !== '' || !empty($footerlines));
+
+if ($haswatermark) {
+    try {
+        // FPDI needs a real source file.
+        $tmpdir = make_request_directory();
+        $tmpsrc = $tmpdir . '/source.pdf';
+        file_put_contents($tmpsrc, $pdfcontent);
+
+        $pdf = new pdf();
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+        $pdf->SetAutoPageBreak(false);
+        $pagecount = $pdf->set_pdf($tmpsrc);
+
+        for ($p = 1; $p <= $pagecount; $p++) {
+            $pdf->copy_page();
+            $pw = $pdf->getPageWidth();
+            $ph = $pdf->getPageHeight();
+
+            // Large diagonal stamp.
+            if ($stamp !== '') {
+                $pdf->SetAlpha(0.20);
+                $pdf->SetTextColor(255, 0, 0);
+                $pdf->SetFont('helvetica', 'B', 60);
+                $pdf->StartTransform();
+                $pdf->Rotate(45, $pw / 2, $ph / 2);
+                $pdf->SetXY(0, ($ph / 2) - 15);
+                $pdf->Cell($pw, 30, $stamp, 0, 0, 'C');
+                $pdf->StopTransform();
+                $pdf->SetAlpha(1);
+            }
+
+            // Footer info line(s).
+            if (!empty($footerlines)) {
+                $pdf->SetAlpha(0.6);
+                $pdf->SetTextColor(60, 60, 60);
+                $pdf->SetFont('helvetica', '', 9);
+                $pdf->SetXY(5, $ph - 9);
+                $pdf->Cell($pw - 10, 6, implode('   |   ', $footerlines), 0, 0, 'C');
+                $pdf->SetAlpha(1);
+            }
+        }
+
+        $pdfcontent = $pdf->Output('', 'S');
+    } catch (\Throwable $e) {
+        // If stamping fails (e.g. an unsupported PDF), fall back to the original file.
+        debugging('mod_securepdf: failed to watermark PDF on download - ' . $e->getMessage(), DEBUG_DEVELOPER);
+    }
+}
+
+send_file($pdfcontent, $filename, 0, 0, true, true, 'application/pdf');
 

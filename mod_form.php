@@ -72,9 +72,46 @@ class mod_securepdf_mod_form extends moodleform_mod {
         $mform->addElement('checkbox', 'onepageview', get_string('showall', 'securepdf'));
         $mform->setDefault('onepageview', 0);
 
+        // Number of pages to show per screen (paged view only).
+        $perpageoptions = [];
+        for ($i = 1; $i <= 10; $i++) {
+            $perpageoptions[$i] = $i;
+        }
+        $mform->addElement('select', 'pagesperview', get_string('pagesperview', 'securepdf'), $perpageoptions);
+        $mform->setDefault('pagesperview', 1);
+        $mform->addHelpButton('pagesperview', 'pagesperview', 'securepdf');
+        // Pages per view is irrelevant when showing everything in one long page.
+        $mform->disabledIf('pagesperview', 'onepageview', 'checked');
+
         // Add a checkbox to allowdownload the file
         $mform->addElement('checkbox', 'allowdownload', get_string('allowdownload', 'securepdf'));
         $mform->setDefault('allowdownload', 0);
+
+        // Download watermark options (only relevant when download is allowed).
+        $mform->addElement('static', 'dlwmheading', '',
+            html_writer::tag('strong', get_string('downloadwatermark', 'securepdf')));
+
+        $mform->addElement('checkbox', 'dlwmconfidential', get_string('dlwmconfidential', 'securepdf'));
+        $mform->setDefault('dlwmconfidential', 0);
+        $mform->disabledIf('dlwmconfidential', 'allowdownload', 'notchecked');
+
+        $mform->addElement('text', 'dlwmtext', get_string('dlwmtext', 'securepdf'), array('size' => '40'));
+        $mform->setType('dlwmtext', PARAM_TEXT);
+        $mform->addHelpButton('dlwmtext', 'dlwmtext', 'securepdf');
+        $mform->disabledIf('dlwmtext', 'allowdownload', 'notchecked');
+        $mform->disabledIf('dlwmtext', 'dlwmconfidential', 'notchecked');
+
+        $mform->addElement('checkbox', 'dlwmuser', get_string('dlwmuser', 'securepdf'));
+        $mform->setDefault('dlwmuser', 0);
+        $mform->disabledIf('dlwmuser', 'allowdownload', 'notchecked');
+
+        $mform->addElement('checkbox', 'dlwmip', get_string('dlwmip', 'securepdf'));
+        $mform->setDefault('dlwmip', 0);
+        $mform->disabledIf('dlwmip', 'allowdownload', 'notchecked');
+
+        $mform->addElement('checkbox', 'dlwmtime', get_string('dlwmtime', 'securepdf'));
+        $mform->setDefault('dlwmtime', 0);
+        $mform->disabledIf('dlwmtime', 'allowdownload', 'notchecked');
 
         // Standard elements, common to all modules.
         $this->standard_coursemodule_elements();

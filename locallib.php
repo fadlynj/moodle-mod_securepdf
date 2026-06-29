@@ -123,6 +123,12 @@ class securepdf {
         } else {
             $add->allowdownload = 0;
         }
+        $add->pagesperview = isset($formdata->pagesperview) ? max(1, (int)$formdata->pagesperview) : 1;
+        $add->dlwmconfidential = isset($formdata->dlwmconfidential) ? 1 : 0;
+        $add->dlwmtext = isset($formdata->dlwmtext) ? trim($formdata->dlwmtext) : '';
+        $add->dlwmuser = isset($formdata->dlwmuser) ? 1 : 0;
+        $add->dlwmip = isset($formdata->dlwmip) ? 1 : 0;
+        $add->dlwmtime = isset($formdata->dlwmtime) ? 1 : 0;
 
         $returnid = $DB->insert_record('securepdf', $add);
         $this->instance = $DB->get_record('securepdf',
@@ -209,7 +215,12 @@ class securepdf {
         } else {
             $update->allowdownload = 0;
         }
-        
+        $update->pagesperview = isset($formdata->pagesperview) ? max(1, (int)$formdata->pagesperview) : 1;
+        $update->dlwmconfidential = isset($formdata->dlwmconfidential) ? 1 : 0;
+        $update->dlwmtext = isset($formdata->dlwmtext) ? trim($formdata->dlwmtext) : '';
+        $update->dlwmuser = isset($formdata->dlwmuser) ? 1 : 0;
+        $update->dlwmip = isset($formdata->dlwmip) ? 1 : 0;
+        $update->dlwmtime = isset($formdata->dlwmtime) ? 1 : 0;
 
         $result = $DB->update_record('securepdf', $update);
         $this->instance = $DB->get_record('securepdf',
