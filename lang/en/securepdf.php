@@ -29,6 +29,7 @@ $string['modulenameplural'] = 'Secure PDFs';
 $string['modulename_help'] = 'Use the securepdf module for adding PDF files securely to your course. The student won\'t be able to download the pdf, It will be shown to him as image for page - without right click to save image';
 
 $string['securepdf:addinstance'] = 'Add a new securepdf';
+$string['securepdf:download'] = 'Download the securepdf file';
 $string['securepdf:view'] = 'View securepdf';
 
 $string['pluginadministration'] = 'Secure PDF administration';

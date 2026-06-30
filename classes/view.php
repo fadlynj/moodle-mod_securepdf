@@ -58,6 +58,18 @@ class view {
         $cache = \cache::make('mod_securepdf', 'pages');
         return $cache->get($cm->id . '_' . $page);
     }
+
+    /**
+     * Fetch only the cached page count (no page image), for callers that
+     * just need the total. Avoids the extra image cache get in checkcache().
+     *
+     * @param \cm_info $cm
+     * @return int|false number of pages, or false when not cached
+     */
+    public static function getcachednumpages($cm) {
+        $cache = \cache::make('mod_securepdf', 'pages');
+        return $cache->get($cm->id);
+    }
     /**
      * Get the number of pages in the PDF and return the image data.
      * in case that there is no cache.
@@ -89,7 +101,7 @@ class view {
         } catch (\Exception $e) {
             echo $OUTPUT->header();
             \core\notification::error(get_string('imagick_pdf_policy', 'mod_securepdf'));
-            echo $e;
+            debugging('mod_securepdf: failed to read PDF - ' . $e->getMessage(), DEBUG_DEVELOPER);
             echo $OUTPUT->footer();
             die();
         }

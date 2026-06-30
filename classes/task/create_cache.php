@@ -53,8 +53,9 @@ class create_cache extends \core\task\adhoc_task
         $im->setResolution($settings->resolution, $settings->resolution);
         try {
             $im->readImageBlob($content);
-        } catch (Exception $e) {
-            echo '[mod_securepdf]' . $e . "\n";
+        } catch (\Exception $e) {
+            mtrace('[mod_securepdf] failed to read PDF for module ' . $moduleid . ' - ' . $e->getMessage());
+            return;
         }
         $numpages = $im->getNumberImages();
         $result = $cache->set($moduleid, $numpages);

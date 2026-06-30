@@ -75,8 +75,7 @@ if ($onepageview) {
             ['target' => '_blank', 'class' => 'btn btn-primary btn-sm mod_securepdf_downloadbtn']);
     }
 
-    $cached = \mod_securepdf\view::checkcache($cm, 0);
-    $numpages = $cached['numpages'];
+    $numpages = \mod_securepdf\view::getcachednumpages($cm);
     if (!$numpages) { // No cache - Get page num only.
         echo '<br><br>' . get_string('nocacheyet', 'mod_securepdf');
         // Refresh every minutes.
@@ -120,8 +119,7 @@ if ($onepageview) {
     $perpage = isset($securepdfdata->pagesperview) ? max(1, (int)$securepdfdata->pagesperview) : 1;
 
     // Find out the total number of pages (from cache, fall back to parsing the PDF).
-    $cached = \mod_securepdf\view::checkcache($cm, $page);
-    $numpages = $cached['numpages'];
+    $numpages = \mod_securepdf\view::getcachednumpages($cm);
     if (!$numpages) {
         // No cache yet - queue the adhoc task and parse on the fly so the page still renders.
         $adhoccache = new \mod_securepdf\task\create_cache();
@@ -142,20 +140,27 @@ if ($onepageview) {
     $lastpage = min($page + $perpage, $numpages) - 1; // Inclusive index of the last page in this chunk.
 
     // Update page views in table (one row per page) - in order to be able to set completion.
+    // Fetch the chunk's existing rows in a single query instead of one SELECT per page.
+    $existingviews = $DB->get_records_select('securepdf_pageviews',
+        'module = ? AND userid = ? AND page >= ? AND page <= ?',
+        [$cm->id, $USER->id, $page, $lastpage]);
+    $viewbypage = [];
+    foreach ($existingviews as $row) {
+        $viewbypage[$row->page] = $row->id;
+    }
+    $now = time();
     for ($p = $page; $p <= $lastpage; $p++) {
-        $pageview = ['module' => $cm->id,
-                    'userid' => $USER->id,
-                    'page' => $p
-                    ];
-        $exist = $DB->get_record('securepdf_pageviews', $pageview);
-        if ($exist) {
-            $pageview['timemodified'] = time();
-            $pageview['id'] = $exist->id;
-            $DB->update_record('securepdf_pageviews', $pageview);
+        if (isset($viewbypage[$p])) {
+            $DB->update_record('securepdf_pageviews',
+                ['id' => $viewbypage[$p], 'timemodified' => $now]);
         } else {
-            $pageview['timemodified'] = time();
-            $pageview['timecreated'] = time();
-            $DB->insert_record('securepdf_pageviews', $pageview);
+            $DB->insert_record('securepdf_pageviews', [
+                'module' => $cm->id,
+                'userid' => $USER->id,
+                'page' => $p,
+                'timecreated' => $now,
+                'timemodified' => $now,
+            ]);
         }
 
         $event = \mod_securepdf\event\page_view::create(array(
