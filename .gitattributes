@@ -1,0 +1,6 @@
+# Keep shell scripts LF so the shebang works on Linux/macOS even when the
+# repo is cloned or zipped on Windows.
+*.sh text eol=lf
+
+# Windows-only helper; CRLF is fine there.
+*.ps1 text eol=crlf
