@@ -26,17 +26,18 @@
     margin-top: 12px;
 }
 
-.mod_securepdf_jump {
+.mod_securepdf_topbar .mod_securepdf_jump {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: row;
+    flex-wrap: nowrap;
     gap: 6px;
     align-items: center;
 }
 
 .mod_securepdf_jumpinput {
-    flex: 1 1 9rem;
+    flex: 0 1 9rem;
     width: auto;
-    min-width: 8.5rem;
+    min-width: 6rem;
     max-width: 14rem;
 }
 
