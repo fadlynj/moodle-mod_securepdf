@@ -34,6 +34,15 @@ $capabilities = array(
         )
     ),
 
+    'mod/securepdf:download' => array(
+        'captype' => 'read',
+        'contextlevel' => CONTEXT_MODULE,
+        'archetypes' => array(
+            'guest' => CAP_ALLOW,
+            'user' => CAP_ALLOW,
+        )
+    ),
+
     'mod/securepdf:addinstance' => array(
         'riskbitmask' => RISK_SPAM | RISK_XSS,
 

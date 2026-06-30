@@ -49,15 +49,16 @@ $context = context_module::instance($cm->id);
 
 require_login($course, true, $cm);
 require_capability('mod/securepdf:view', $context);
+require_capability('mod/securepdf:download', $context);
 $securepdfdata = $DB->get_record('securepdf', array('id' => $cm->instance), '*', MUST_EXIST);
 
 if (!$securepdfdata->allowdownload) {
-    print_error('notallowedtodownload', 'securepdf');
+    throw new moodle_exception('notallowedtodownload', 'securepdf');
 }
 $fs = get_file_storage();
 $files = $fs->get_area_files($context->id, 'mod_securepdf', 'content', 0, 'sortorder', false);
 if (empty($files)) {
-    print_error('nofiles', 'securepdf');
+    throw new moodle_exception('nofiles', 'securepdf');
 }
 $pdfcontent = '';
 $filename = '';
@@ -72,7 +73,7 @@ foreach ($files as $file) {
     break;
 }
 if (empty($pdfcontent)) {
-    print_error('nofiles', 'securepdf');
+    throw new moodle_exception('nofiles', 'securepdf');
 }
 
 // Build the watermark from the activity configuration.
@@ -118,6 +119,7 @@ if ($haswatermark) {
         $cache = \cache::make('mod_securepdf', 'downloadpages');
         $cachekey = $contenthash . '_' . $res;
         $jpegs = [];
+        $dims = [];
         $count = $cache->get($cachekey . '_count');
         if ($count !== false && $count > 0) {
             for ($i = 0; $i < $count; $i++) {
@@ -128,6 +130,12 @@ if ($haswatermark) {
                 }
                 $jpegs[$i] = $blob;
             }
+            // Page pixel dimensions, cached alongside the blobs (older caches lack
+            // this key; the render loop falls back to reading the JPEG header).
+            $cacheddims = $cache->get($cachekey . '_dims');
+            if (is_array($cacheddims)) {
+                $dims = $cacheddims;
+            }
         }
         if (empty($jpegs)) {
             $im = new \Imagick();
@@ -135,6 +143,7 @@ if ($haswatermark) {
             // Render straight to JPEG so Imagick never keeps a full RGBA raster per page.
             $im->setColorspace(\Imagick::COLORSPACE_SRGB);
             $im->readImageBlob($pdfcontent);
+            $dims = [];
             foreach ($im as $frame) {
                 // Flatten transparency onto white, strip metadata, compress: smaller
                 // blob = faster embed + smaller output.
@@ -146,6 +155,8 @@ if ($haswatermark) {
                 $frame->setImageCompressionQuality(82);
                 $frame->stripImage();
                 $jpegs[] = $frame->getImageBlob();
+                // Capture dimensions now so downloads never decode the JPEG header.
+                $dims[] = [$frame->getImageWidth(), $frame->getImageHeight()];
             }
             $im->clear();
             $im->destroy();
@@ -154,6 +165,7 @@ if ($haswatermark) {
             foreach ($jpegs as $i => $blob) {
                 $cache->set($cachekey . '_' . $i, $blob);
             }
+            $cache->set($cachekey . '_dims', $dims);
         }
 
         $pdf = new pdf('P', 'pt');
@@ -161,14 +173,22 @@ if ($haswatermark) {
         $pdf->setPrintFooter(false);
         $pdf->SetAutoPageBreak(false);
 
-        foreach ($jpegs as $jpeg) {
+        foreach ($jpegs as $i => $jpeg) {
             // Page size in points, derived from the image's pixel dimensions.
-            $imgsize = getimagesizefromstring($jpeg);
-            if (!$imgsize || $imgsize[0] <= 0 || $imgsize[1] <= 0) {
-                continue;
+            // Prefer the cached dimensions; fall back to decoding the JPEG header.
+            if (isset($dims[$i]) && is_array($dims[$i]) && $dims[$i][0] > 0 && $dims[$i][1] > 0) {
+                $pxw = $dims[$i][0];
+                $pxh = $dims[$i][1];
+            } else {
+                $imgsize = getimagesizefromstring($jpeg);
+                if (!$imgsize || $imgsize[0] <= 0 || $imgsize[1] <= 0) {
+                    continue;
+                }
+                $pxw = $imgsize[0];
+                $pxh = $imgsize[1];
             }
-            $wpt = $imgsize[0] * 72.0 / $res;
-            $hpt = $imgsize[1] * 72.0 / $res;
+            $wpt = $pxw * 72.0 / $res;
+            $hpt = $pxh * 72.0 / $res;
 
             $pdf->AddPage('', array($wpt, $hpt));
             $pdf->Image('@' . $jpeg, 0, 0, $wpt, $hpt, 'JPEG');

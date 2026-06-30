@@ -29,6 +29,7 @@ $string['modulenameplural'] = 'Secure PDF';
 $string['modulename_help'] = 'Gunakan modul Secure PDF untuk menambahkan berkas PDF ke kursus Anda secara aman. Siswa tidak dapat mengunduh PDF, berkas akan ditampilkan sebagai gambar per halaman - tanpa klik kanan untuk menyimpan gambar.';
 
 $string['securepdf:addinstance'] = 'Tambah Secure PDF baru';
+$string['securepdf:download'] = 'Unduh berkas Secure PDF';
 $string['securepdf:view'] = 'Lihat Secure PDF';
 
 $string['pluginadministration'] = 'Administrasi Secure PDF';
