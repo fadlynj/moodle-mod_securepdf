@@ -135,6 +135,46 @@ class mod_securepdf_mod_form extends moodleform_mod {
         $mform->addHelpButton('dlwmbordercolor', 'dlwmcolor', 'securepdf');
         $mform->disabledIf('dlwmbordercolor', 'allowdownload', 'notchecked');
 
+        // Attach a native colour picker swatch next to each hex text field, two-way synced.
+        global $PAGE;
+        $PAGE->requires->js_amd_inline("
+            require(['jquery'], function(\$) {
+                ['id_dlwmtextcolor', 'id_dlwmbgcolor', 'id_dlwmbordercolor'].forEach(function(id) {
+                    var text = document.getElementById(id);
+                    if (!text || text.dataset.swatchAdded) {
+                        return;
+                    }
+                    text.dataset.swatchAdded = '1';
+                    var swatch = document.createElement('input');
+                    swatch.type = 'color';
+                    swatch.style.marginLeft = '6px';
+                    swatch.style.verticalAlign = 'middle';
+                    swatch.style.cursor = 'pointer';
+                    var valid = function(v) { return /^#[0-9a-fA-F]{6}\$/.test(v); };
+                    if (valid(text.value)) {
+                        swatch.value = text.value;
+                    }
+                    text.parentNode.insertBefore(swatch, text.nextSibling);
+                    swatch.addEventListener('input', function() {
+                        text.value = swatch.value;
+                        text.dispatchEvent(new Event('change', {bubbles: true}));
+                    });
+                    text.addEventListener('input', function() {
+                        if (valid(text.value)) {
+                            swatch.value = text.value;
+                        }
+                    });
+                    swatch.disabled = text.disabled;
+                    var dl = document.getElementById('id_allowdownload');
+                    if (dl) {
+                        dl.addEventListener('change', function() {
+                            swatch.disabled = !dl.checked;
+                        });
+                    }
+                });
+            });
+        ");
+
         $opacityoptions = [];
         for ($o = 0; $o <= 100; $o += 10) {
             $opacityoptions[$o] = $o . '%';
